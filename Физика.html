@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ЭМ-волны и опыты Герца — Интерактивный учебник</title>
+
+<!-- KaTeX CDN для физических формул -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+
+<style>
+:root {
+  --bg: #070b19;
+  --panel-bg: rgba(18, 25, 48, 0.72);
+  --panel-border: rgba(99, 130, 220, 0.25);
+  --panel-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+  --pn: #121930;
+  --ln: rgba(99, 130, 220, 0.42);
+  --tx: #f0f4ff;
+  --mu: #9bb0e5;
+  --E: #4aa8ff;
+  --B: #ff4fd8;
+  --C: #ffd23f;
+  --ok: #38bdf8;
+  --bad: #ff6b6b;
+  --accent: #3b82f6;
+  --radius: 16px;
+  box-sizing: border-box;
+}
+
+:root[data-theme=light] {
+  --bg: #edf2f9;
+  --panel-bg: rgba(255, 255, 255, 0.78);
+  --panel-border: rgba(160, 180, 220, 0.45);
+  --panel-shadow: 0 16px 36px rgba(10, 25, 60, 0.12);
+  --pn: #ffffff;
+  --ln: rgba(120, 145, 200, 0.55);
+  --tx: #0f172a;
+  --mu: #475569;
+  --E: #0284c7;
+  --B: #d946ef;
+  --C: #d97706;
+  --ok: #0284c7;
+  --bad: #dc2626;
+  --accent: #2563eb;
+}
+
+* { box-sizing: border-box; user-select: none; }
+html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; background: var(--bg); font: 15px/1.4 system-ui, -apple-system, sans-serif; color: var(--tx); }
+
+/* ФОНОВЫЙ КАНВАС НА ВЕСЬ ЭКРАН */
+#cv { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; touch-action: none; cursor: grab; }
+#cv:active { cursor: grabbing; }
+
+/* ИНТЕРФЕЙСНЫЙ СЛОЙ */
+.ui-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 1;
+}
+
+.ui-layer > * {
+  pointer-events: auto;
+}
+
+/* СТЕКЛЯННЫЕ ПАНЕЛИ (GLASSMORPHISM) */
+.glass {
+  background: var(--panel-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--panel-shadow);
+  border-radius: var(--radius);
+  color: var(--tx);
+  transition: border-color 0.2s, box-shadow 0.2s, opacity 0.25s, transform 0.25s;
+}
+
+/* ВЕРХНЯЯ ПАНЕЛЬ УПРАВЛЕНИЯ */
+.top-bar {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 12px;
+  z-index: 20;
+  width: max-content;
+  max-width: 96vw;
+}
+
+.scene-tabs { display: flex; gap: 4px; background: rgba(0,0,0,0.15); padding: 4px; border-radius: 12px; }
+.btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--tx);
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.btn:hover { background: rgba(255,255,255,0.1); }
+.btn.active { background: var(--accent); color: #fff; font-weight: 600; box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+
+.divider { width: 1px; height: 20px; background: var(--panel-border); margin: 0 2px; flex-shrink: 0; }
+
+/* МЕНЮ ПАНЕЛЕЙ: повторное открытие закрытых окон */
+.panel-selector {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 30;
+  display: none;
+  min-width: 220px;
+  padding: 6px;
+  border-radius: 12px;
+}
+.panel-selector.open { display: block; }
+.panel-selector button {
+  display: block;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--tx);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.panel-selector button:hover,
+.panel-selector button:focus-visible { background: rgba(255,255,255,0.12); outline: none; }
+.widget-header { touch-action: none; }
+.widget.minimized { min-height: 0; }
+.widget.minimized .widget-body { display: none; }
+
+/* ПЛАВАЮЩИЕ ИНТЕРАКТИВНЫЕ ВИДЖЕТЫ */
+.widget {
+  position: absolute;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  min-width: 260px;
+  max-width: 460px;
+  overflow: hidden;
+  opacity: 1;
+  transform: scale(1);
+  transform-origin: top left;
+}
+
+.widget.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.95);
+}
+
+.widget-header {
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: move;
+  border-bottom: 1px solid var(--panel-border);
+  background: rgba(255,255,255,0.03);
+}
+
+.widget-title { font-weight: 600; font-size: 14px; color: var(--mu); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; }
+.widget-controls { display: flex; gap: 4px; }
+.icon-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--mu);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+.icon-btn:hover { background: rgba(255,255,255,0.15); color: var(--tx); }
+
+.widget-body {
+  padding: 12px 16px;
+  overflow-y: auto;
+  max-height: 70vh;
+}
+
+/* ОПИСАНИЕ СЦЕНЫ */
+#w-desc { top: 75px; left: 20px; width: 380px; }
+#w-desc .widget-body { font-size: 16px; line-height: 1.5; }
+
+/* НАСТРОЙКИ СИМУЛЯЦИИ */
+#w-params { top: 75px; right: 20px; width: 320px; }
+.param-group { display: flex; flex-direction: column; gap: 10px; }
+.param-row { display: flex; flex-direction: column; gap: 4px; }
+.param-label { display: flex; justify-content: space-between; font-size: 13px; color: var(--mu); }
+input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+select {
+  width: 100%;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--panel-border);
+  color: var(--tx);
+  padding: 6px 10px;
+  border-radius: 8px;
+  outline: none;
+}
+.toggles-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+.toggles-grid label { font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
+/* МЕТРИКИ И ПОКАЗАТЕЛИ */
+#w-metrics { top: 460px; right: 20px; width: 320px; }
+.metric-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 14px; }
+.metric-row:last-child { border-bottom: none; }
+.metric-label { color: var(--mu); }
+.metric-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ОКНО С ФОРМУЛОЙ (ПЕРЕМЕЩАЕМОЕ И ЗАКРЫВАЕМОЕ) */
+#w-formula {
+  bottom: 20px;
+  left: calc(50% - min(230px, 45vw));
+  width: min(460px, 90vw);
+  max-width: 90vw;
+}
+#w-formula .widget-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+}
+#fm .katex { font-size: 1.2em; color: var(--C); }
+
+/* ШПАРГАЛКА СПИКЕРА */
+#w-cheat { bottom: 90px; left: 20px; width: 440px; }
+#w-cheat ul { margin: 0; padding-left: 18px; line-height: 1.5; color: var(--tx); }
+#w-cheat li { margin-bottom: 6px; }
+#w-cheat li:last-child { margin-bottom: 0; }
+
+@media (max-width: 768px) {
+  .top-bar { width: 95%; flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; }
+  .widget { width: 90vw !important; left: 5vw; right: auto; }
+  #w-params, #w-metrics { right: auto; }
+  #w-desc { top: 70px; }
+  #w-params { top: 220px; }
+  #w-metrics { top: auto; bottom: 80px; }
+  #w-formula { bottom: 16px; left: 5vw; font-size: 14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ФОНОВЫЙ КАНВАС -->
+<canvas id="cv"></canvas>
+
+<!-- ИНТЕРФЕЙСНЫЙ СЛОЙ -->
+<div class="ui-layer" id="ui-layer">
+
+  <!-- ВЕРХНЯЯ ПАНЕЛЬ УПРАВЛЕНИЯ -->
+  <header class="top-bar glass">
+    <button class="btn" id="openMenu" aria-label="Открыть меню панелей" aria-expanded="false" aria-controls="panelSelector">☰ Панели</button>
+    <div class="panel-selector glass" id="panelSelector" role="menu" aria-label="Список панелей">
+      <button type="button" data-panel="w-desc" role="menuitem">Описание темы</button>
+      <button type="button" data-panel="w-params" role="menuitem">Параметры среды</button>
+      <button type="button" data-panel="w-metrics" role="menuitem">Данные измерений</button>
+      <button type="button" data-panel="w-cheat" role="menuitem">Подробнее</button>
+      <button type="button" data-panel="w-formula" role="menuitem">Формула</button>
+    </div>
+    <div class="scene-tabs" id="tabs"></div>
+    <div class="divider"></div>
+    <button class="btn" id="pl">⏸ Пауза</button>
+    <button class="btn" id="st" title="Шаг T/4">⏭</button>
+    <div class="divider"></div>
+    <button class="btn icon-btn" id="zoom-out" title="Уменьшить фон">−</button>
+    <button class="btn" id="zoom-reset" title="Сбросить масштаб фона (100%)" style="padding: 4px 8px; font-variant-numeric: tabular-nums;">100%</button>
+    <button class="btn icon-btn" id="zoom-in" title="Увеличить фон">+</button>
+    <div class="divider"></div>
+    <button class="btn icon-btn" id="btn-toggle-params" title="Настройки">⚙️</button>
+    <button class="btn icon-btn" id="btn-toggle-metrics" title="Метрики">📊</button>
+    <button class="btn icon-btn" id="btn-toggle-cheat" title="Шпаргалка">💡</button>
+    <button class="btn icon-btn" id="btn-toggle-formula" title="Формула">∑</button>
+    <button class="btn icon-btn" id="th" title="Тема">☀/🌙</button>
+  </header>
+
+  <!-- ВИДЖЕТ: ОПИСАНИЕ СЦЕНЫ -->
+  <div class="widget glass" id="w-desc">
+    <div class="widget-header">
+      <span class="widget-title">📌 Описание темы</span>
+      <div class="widget-controls">
+        <button class="icon-btn minimize-btn" type="button" aria-label="Свернуть панель" aria-expanded="true" title="Свернуть">−</button>
+        <button class="icon-btn close-btn" type="button" aria-label="Закрыть панель" title="Закрыть">✕</button>
+      </div>
+    </div>
+    <div class="widget-body" id="desc"></div>
+  </div>
+
+  <!-- ВИДЖЕТ: УПРАВЛЕНИЕ И ПАРАМЕТРЫ -->
+  <div class="widget glass" id="w-params">
+    <div class="widget-header">
+      <span class="widget-title">⚙️ Параметры среды</span>
+      <div class="widget-controls">
+        <button class="icon-btn minimize-btn" type="button" aria-label="Свернуть панель" aria-expanded="true" title="Свернуть">−</button>
+        <button class="icon-btn close-btn" type="button" aria-label="Закрыть панель" title="Закрыть">✕</button>
+      </div>
+    </div>
+    <div class="widget-body param-group">
+      <div class="param-row">
+        <div class="param-label"><span>Частота <span id="lbl_nu"></span></span><b id="nuv"></b></div>
+        <input type="range" id="nu" min="30" max="300" step="1" value="100">
+      </div>
+      <div class="param-row">
+        <div class="param-label"><span>Среда распространения</span></div>
+        <select id="med">
+          <option value="vac">Вакуум (n = 1)</option>
+          <option value="air">Воздух (n ≈ 1.0003)</option>
+          <option value="wat" selected>Вода (n ≈ 1.33)</option>
+          <option value="gls">Стекло (n ≈ 1.5)</option>
+          <option value="cus">Своя среда…</option>
+        </select>
+      </div>
+      <div class="param-row" id="nnw" style="display:none">
+        <div class="param-label"><span>Показатель преломления <span id="lbl_n"></span></span><b id="nnv"></b></div>
+        <input type="range" id="nn" min="1" max="3" step="0.01" value="1.8">
+      </div>
+      <div class="param-row">
+        <div class="param-label"><span>Амплитуда / Ускорение</span><b id="ampv"></b></div>
+        <input type="range" id="amp" min="0" max="1" step="0.01" value="0.7">
+      </div>
+      <div class="param-row" id="detw" style="display:none">
+        <div class="param-label"><span>Расстройка резонатора <span id="lbl_det"></span></span><b id="detv"></b></div>
+        <input type="range" id="det" min="-30" max="30" step="0.5" value="0">
+      </div>
+      <div class="param-row">
+        <div class="param-label"><span>Масштаб фона</span><b id="zoomv">100%</b></div>
+        <input type="range" id="zoom-slider" min="35" max="350" step="5" value="100">
+      </div>
+
+      <div class="toggles-grid">
+        <label><input type="checkbox" id="vec" checked> <span id="lbl_vec"></span></label>
+        <label><input type="checkbox" id="ax" checked> Оси, <span id="lbl_lam"></span></label>
+        <label><input type="checkbox" id="screw" checked> Правый винт</label>
+        <label><input type="checkbox" id="fo" checked> Формула</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ВИДЖЕТ: МЕТРИКИ -->
+  <div class="widget glass" id="w-metrics">
+    <div class="widget-header">
+      <span class="widget-title">📊 Данные измерений</span>
+      <div class="widget-controls">
+        <button class="icon-btn minimize-btn" type="button" aria-label="Свернуть панель" aria-expanded="true" title="Свернуть">−</button>
+        <button class="icon-btn close-btn" type="button" aria-label="Закрыть панель" title="Закрыть">✕</button>
+      </div>
+    </div>
+    <div class="widget-body" id="met"></div>
+  </div>
+
+  <!-- ВИДЖЕТ: ШПАРГАЛКА СПИКЕРА -->
+  <div class="widget glass hidden" id="w-cheat">
+    <div class="widget-header">
+      <span class="widget-title">Подробнее</span>
+      <div class="widget-controls">
+        <button class="icon-btn minimize-btn" type="button" aria-label="Свернуть панель" aria-expanded="true" title="Свернуть">−</button>
+        <button class="icon-btn close-btn" type="button" aria-label="Закрыть панель" title="Закрыть">✕</button>
+      </div>
+    </div>
+    <div class="widget-body">
+      <ul id="ck"></ul>
+    </div>
+  </div>
+
+  <!-- ВИДЖЕТ: ГЛАВНАЯ ФОРМУЛА -->
+  <div class="widget glass" id="w-formula">
+    <div class="widget-header">
+      <span class="widget-title">📐 Формула</span>
+      <div class="widget-controls">
+        <button class="icon-btn minimize-btn" type="button" aria-label="Свернуть панель" aria-expanded="true" title="Свернуть">−</button>
+        <button class="icon-btn close-btn" type="button" aria-label="Закрыть панель" title="Закрыть">✕</button>
+      </div>
+    </div>
+    <div class="widget-body">
+      <div id="fm"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const $ = s => document.querySelector(s), cv = $('#cv'), g = cv.getContext('2d'), TAU = Math.PI * 2, c0 = 2.998e8;
+const MED = {vac: ['Вакуум', 1], air: ['Воздух', 1.0003], wat: ['Вода', 1.33], gls: ['Стекло', 1.5], cus: ['Своя среда', 1.8]};
+const SC = ['Плоская ЭМ-волна', 'Ускоренный заряд', 'Контур → вибратор', 'Опыт Герца'];
+
+const DESC = [
+  '§20. Бегущая волна вдоль оси x: $\\vec{E} \\perp \\vec{B} \\perp \\vec{c}$. Справа — среда: $\\nu$ прежняя, $\\lambda$ меньше.',
+  '§20. Электромагнитные волны излучает заряд, движущийся с ускорением $\\vec{a}$.',
+  '§21. Закрытый $LC$-контур не излучает; открытый вибратор — излучает.',
+  '§21. Передатчик $\\rightarrow$ волна $\\rightarrow$ резонатор: при совпадении частот — резонанс и искра.'
+];
+
+const CK = [
+  [
+    'ЭМ волна — распространение колебаний $\\vec{E}$ и $\\vec{B}$ в пространстве; она поперечная: $\\vec{E} \\perp \\vec{B} \\perp \\vec{c}$.',
+    'В вакууме $c = \\frac{1}{\\sqrt{\\varepsilon_0 \\mu_0}} \\approx 3 \\cdot 10^8 \\text{ м/с}$; в среде $v = \\frac{c}{n}$.',
+    'При входе в среду частота $\\nu$ не меняется, $\\lambda = \\frac{v}{\\nu}$ уменьшается; $\\vec{E}$ и $\\vec{B}$ колеблются синфазно.'
+  ],
+  [
+    'Волну излучают заряды, движущиеся с ускорением $\\vec{a}$; равномерное движение не излучает.',
+    'Чем больше ускорение, тем интенсивнее волна $I \\propto a^2$ (при $a \\to 0$ излучения нет).',
+    'Излучение максимально перпендикулярно оси колебаний и равно нулю вдоль неё.'
+  ],
+  [
+    'Закрытый контур: $\\vec{E}$ — в конденсаторе, $\\vec{B}$ — в катушке; волна не уходит.',
+    'Раздвигаем пластины и уменьшаем катушку: $\\nu = \\frac{1}{2\\pi \\sqrt{LC}}$ растёт, поле выходит в пространство.',
+    '$t = 0$: ток и $\\vec{B}$ максимальны, $\\vec{E} = 0$. Через $T/4$: $I = 0$, заряды на концах, $\\vec{E}$ максимально.'
+  ],
+  [
+    'Передатчик: источник высокого напряжения, дроссели, вибратор с искровым промежутком.',
+    'Приёмник — такой же вибратор (резонатор): электроны совершают вынужденные колебания.',
+    'Частоты совпали — резонанс: амплитуда резко растёт, проскакивает искра. Скорость волны оказалась равна $c$.'
+  ]
+];
+
+const S = {sc: 0, play: 1, tau: 0, spd: 1, nu: 100, amp: .7, det: 0, med: 'wat', n: 1.8, vec: 1, ax: 1, screw: 1, form: 1, zoom: 1, panX: 0, panY: 0}, C = {};
+let W = 0, H = 0, PH = {}, pxm = 0, R = [], FM_TEX = '', last = performance.now();
+
+// РЕНДЕРИНГ MATH-ФОРМУЛ В LATEX
+function tex(expr, inline = true) {
+  try {
+    return katex.renderToString(expr, { displayMode: !inline, throwOnError: false });
+  } catch (e) {
+    return expr;
+  }
+}
+
+const fl = m => m >= 1 ? m.toFixed(2) + ' м' : (m * 100).toFixed(1) + ' см';
+const fv = v => (v / 1e8).toFixed(3) + ' · 10⁸ м/с';
+const sg = x => (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(2);
+
+function theme() {
+  const s = getComputedStyle(document.documentElement);
+  ['bg', 'tx', 'mu', 'ln', 'E', 'B', 'C', 'ok', 'bad', 'pn'].forEach(k => C[k] = s.getPropertyValue('--' + k).trim());
+}
+
+// ГРАФИЧЕСКИЕ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ КАНВАСА
+function L(a, b, c, d, col, w) { g.strokeStyle = col; g.lineWidth = w || 2; g.beginPath(); g.moveTo(a, b); g.lineTo(c, d); g.stroke(); }
+function A(a, b, c, d, col, w) {
+  const l = Math.hypot(c - a, d - b); L(a, b, c, d, col, w); if (l < 7) return;
+  const t = Math.atan2(d - b, c - a), s = Math.min(11, l * .4);
+  g.fillStyle = col; g.beginPath(); g.moveTo(c, d);
+  g.lineTo(c - s * Math.cos(t - .4), d - s * Math.sin(t - .4));
+  g.lineTo(c - s * Math.cos(t + .4), d - s * Math.sin(t + .4)); g.fill();
+}
+function T(s, x, y, col, sz, al, vec) {
+  sz = sz || 18; g.fillStyle = col; g.font = (vec ? 'italic bold ' : '') + sz + 'px system-ui,sans-serif';
+  g.textAlign = al || 'left'; g.fillText(s, x, y);
+  if (vec) {
+    const m = g.measureText(s).width, l = al == 'center' ? x - m / 2 : al == 'right' ? x - m : x, yy = y - sz * .95;
+    g.strokeStyle = col; g.lineWidth = 1.6; g.beginPath(); g.moveTo(l, yy); g.lineTo(l + m, yy);
+    g.lineTo(l + m - 4, yy - 3); g.moveTo(l + m, yy); g.lineTo(l + m - 4, yy + 3); g.stroke();
+  }
+}
+function spark(x, y, hg, sc) {
+  g.save(); g.strokeStyle = C.C; g.shadowColor = C.C; g.shadowBlur = 18 * sc; g.lineWidth = 2.5;
+  g.beginPath(); g.moveTo(x, y - hg);
+  for (let i = 1; i < 5; i++) g.lineTo(x + (Math.random() - .5) * 16, y - hg + hg * 2 * i / 5);
+  g.lineTo(x, y + hg); g.stroke(); g.restore();
+}
+function coil(x1, x2, y) {
+  const n = 5, s = (x2 - x1) / n; g.strokeStyle = C.tx; g.lineWidth = 2.5; g.beginPath(); g.moveTo(x1, y);
+  for (let i = 0; i < n; i++) g.arc(x1 + (i + .5) * s, y, s / 2, Math.PI, 0); g.stroke();
+}
+
+function rings(cx, cy, A0, gain, lamV, Rm) {
+  const N = 12, f = Math.floor(S.tau * N);
+  for (let i = 0; ; i++) {
+    const te = (f - i) / N, r = (S.tau - te) * lamV; if (r > Rm) break;
+    const s = Math.sin(TAU * te), I = Math.abs(s) * gain; if (I < .04 || r < 3) continue;
+    const yc = cy - A0 * s, q = s > 0 ? 1 : -1, fade = Math.max(0, 1 - r / Rm * .7);
+    for (const side of [1, -1]) {
+      g.strokeStyle = C.E; g.lineWidth = 2.2;
+      for (let j = 0; j < 14; j++) {
+        const a = Math.PI * j / 14, b = Math.PI * (j + 1) / 14;
+        g.globalAlpha = Math.min(1, I * Math.sin((a + b) / 2) * 1.3) * fade;
+        g.beginPath(); g.moveTo(cx + side * r * Math.sin(a), yc - r * Math.cos(a));
+        g.lineTo(cx + side * r * Math.sin(b), yc - r * Math.cos(b)); g.stroke();
+      }
+      if (S.vec && i % 3 == 0 && r > 35 && I > .3) {
+        g.globalAlpha = Math.min(1, I) * fade;
+        for (const th of [1.57, .95, 2.2]) {
+          const px = cx + side * r * Math.sin(th), py = yc - r * Math.cos(th), ln = 16 * I;
+          A(px, py, px + (-side * Math.cos(th) * q) * ln, py - Math.sin(th) * q * ln, C.E, 2);
+        }
+        const px = cx + side * r, py = yc; g.strokeStyle = C.B; g.lineWidth = 2; g.beginPath(); g.arc(px, py + 22, 6, 0, TAU); g.stroke();
+        if (q * side > 0) { g.fillStyle = C.B; g.beginPath(); g.arc(px, py + 22, 2.2, 0, TAU); g.fill(); }
+        else { g.beginPath(); g.moveTo(px - 4, py + 18); g.lineTo(px + 4, py + 26); g.moveTo(px + 4, py + 18); g.lineTo(px - 4, py + 26); g.stroke(); }
+      }
+    }
+    g.globalAlpha = 1;
+  }
+}
+
+/* СЦЕНА 1: ПЛОСКАЯ ЭМ-ВОЛНА */
+function sc1(w, h) {
+  const ox = w * .1, oy = h * .5, Lx = w * .84, xb = Lx * .5, A0 = h * .27 * S.amp, k0 = TAU / PH.lamV0, k1 = TAU / PH.lamV;
+  const P = (x, y, z) => [ox + x - .55 * z, oy - y + .38 * z];
+  const f = x => Math.sin(TAU * S.tau - (x < xb ? k0 * x : k0 * xb + k1 * (x - xb))), N = Math.floor(Lx / 8);
+
+  g.globalAlpha = .12; g.fillStyle = C.E; g.fillRect(ox + xb, h * .04, Lx - xb + w * .06, h * .92); g.globalAlpha = 1;
+  L(ox + xb, h * .04, ox + xb, h * .96, C.mu, 1);
+  T('Вакуум  n = 1', ox + xb * .5, h * .97, C.mu, 20, 'center');
+  T(MED[S.med][0] + '  n = ' + PH.n.toFixed(2), ox + xb * 1.5, h * .97, C.mu, 20, 'center');
+
+  let o = P(0, 0, 0), e = P(Lx + 30, 0, 0); A(o[0], o[1], e[0], e[1], C.mu, 2); T('x', e[0] + 8, e[1] + 6, C.tx, 22);
+  if (S.ax) {
+    e = P(0, A0 * 1.5 + 10, 0); A(o[0], o[1], e[0], e[1], C.mu, 1.5); T('y', e[0] - 18, e[1] + 4, C.mu, 20);
+    e = P(0, 0, A0 * 1.5 + 10); A(o[0], o[1], e[0], e[1], C.mu, 1.5); T('z', e[0] - 18, e[1] + 16, C.mu, 20);
+  }
+
+  const vecs = (col, fn) => { if (!S.vec) return; for (let i = 0; i <= N; i++) { const x = i * 8, a = P(x, 0, 0), q = fn(x, f(x) * A0); A(a[0], a[1], q[0], q[1], col, 1.6); } };
+  const curve = (col, fn) => { g.strokeStyle = col; g.lineWidth = 3; g.beginPath(); for (let i = 0; i <= N; i++) { const x = i * 8, q = fn(x, f(x) * A0); i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); } g.stroke(); };
+  const fB = (x, v) => P(x, 0, v), fE = (x, v) => P(x, v, 0);
+
+  vecs(C.B, fB); curve(C.B, fB); vecs(C.E, fE); curve(C.E, fE);
+  if (S.vec) {
+    let q = P(14, A0 * 1.15, 0); T('E', q[0] + 8, q[1], C.E, 28, 'left', true);
+    q = P(14, 0, A0 * 1.15); T('B', q[0] - 8, q[1] + 10, C.B, 28, 'right', true);
+  }
+
+  if (S.ax) {
+    const lp = PH.lamV0, lm = PH.lamV, br = (x1, x2, lab) => {
+      const a = P(x1, A0 * 1.2 + 14, 0), b = P(x2, A0 * 1.2 + 14, 0);
+      L(a[0], a[1], b[0], b[1], C.C, 2); L(a[0], a[1] - 7, a[0], a[1] + 7, C.C, 2); L(b[0], b[1] - 7, b[0], b[1] + 7, C.C, 2);
+      T(lab, (a[0] + b[0]) / 2, a[1] - 10, C.C, 26, 'center');
+    };
+    let x1 = (((TAU * S.tau - Math.PI / 2) / k0) % lp + lp) % lp; if (x1 < 10) x1 += lp; if (x1 + lp < xb) br(x1, x1 + lp, 'λ');
+    let x2 = xb + (((((TAU * S.tau - Math.PI / 2 - k0 * xb) / k1) % lm) + lm) % lm); if (x2 < xb + 10) x2 += lm; if (x2 + lm < Lx) br(x2, x2 + lm, PH.n > 1.05 ? "λ' = λ/n" : 'λ');
+  }
+
+  const cy2 = h * .9; A(ox + 10, cy2, ox + 130, cy2, C.C, 4); T('c', ox + 138, cy2 + 6, C.C, 26, 'left', true);
+  const vl = 120 / PH.n; A(ox + xb + 10, cy2, ox + xb + 10 + vl, cy2, C.C, 4); T(PH.n > 1.05 ? 'v' : 'c', ox + xb + 18 + vl, cy2 + 6, C.C, 26, 'left', true);
+
+  const xp = xb * .4, pv = f(xp), pe = P(xp, pv * A0, 0), pb = P(xp, 0, pv * A0), p0 = P(xp, 0, 0);
+  g.setLineDash([4, 4]); L(pe[0], pe[1], p0[0], p0[1], C.E, 1); L(pb[0], pb[1], p0[0], p0[1], C.B, 1); g.setLineDash([]);
+  [[pe, C.E], [pb, C.B]].forEach(([p, c]) => { g.fillStyle = c; g.beginPath(); g.arc(p[0], p[1], 8, 0, TAU); g.fill(); });
+
+  if (S.screw) {
+    const X = w - 250, Y = 80, px = X + 90, py = Y + 108;
+    g.fillStyle = C.pn; g.globalAlpha = .82; g.fillRect(X, Y, 240, 150); g.globalAlpha = 1;
+    g.strokeStyle = C.ln; g.lineWidth = 2; g.strokeRect(X, Y, 240, 150);
+    T('Правый винт: E → B ⇒ c', X + 120, Y + 22, C.tx, 17, 'center');
+    A(px, py, px, py - 68, C.E, 3); T('E', px - 8, py - 60, C.E, 22, 'right', true);
+    A(px, py, px - 38, py + 27, C.B, 3); T('B', px - 44, py + 36, C.B, 22, 'right', true);
+    g.strokeStyle = C.C; g.lineWidth = 2.5; g.beginPath(); g.arc(px, py, 36, -1.57, -3.75, true); g.stroke();
+    A(px + 36 * Math.cos(-3.5), py + 36 * Math.sin(-3.5), px + 36 * Math.cos(-3.75), py + 36 * Math.sin(-3.75), C.C, 2.5);
+    A(px, py, px + 125, py, C.C, 4); T('c', px + 112, py - 12, C.C, 24, 'center', true);
+  }
+
+  R.push(
+    ['v_\\text{вакуум}', fv(c0)],
+    ['v_\\text{среда}', fv(PH.v)],
+    ['\\lambda_\\text{вакуум}', fl(PH.lam0)],
+    ['\\lambda_\\text{среда}', fl(PH.lam)],
+    ['E_\\text{точка}', sg(pv) + ' E_0', C.E],
+    ['B_\\text{точка}', sg(pv) + ' B_0', C.B]
+  );
+
+  FM_TEX = `\\lambda = \\frac{v}{\\nu} = \\frac{${(PH.v / 1e8).toFixed(2)} \\cdot 10^8}{${S.nu} \\cdot 10^6} = \\text{${fl(PH.lam)}} \\quad \\Big| \\quad v = \\frac{c}{n} = \\frac{3 \\cdot 10^8}{${PH.n.toFixed(2)}}`;
+}
+
+/* СЦЕНА 2: УСКОРЕННЫЙ ЗАРЯД */
+function sc2(w, h) {
+  const cx = w * .4, cy = h * .5, Ac = h * .1 * S.amp, gain = Math.min(1.2, S.amp * 1.3), s = Math.sin(TAU * S.tau);
+  rings(cx, cy, Ac, gain, PH.lamV, w * .65);
+
+  g.setLineDash([6, 6]); L(cx, cy - h * .38, cx, cy + h * .38, C.mu, 1.5); g.setLineDash([]);
+  T('ось колебаний', cx + 10, cy - h * .38 + 16, C.mu, 17);
+
+  const y = cy - Ac * s; g.fillStyle = C.bad; g.beginPath(); g.arc(cx, y, 13, 0, TAU); g.fill();
+  T('+', cx, y + 7, '#fff', 22, 'center');
+
+  const al = 70 * S.amp * s; A(cx + 30, y, cx + 30, y + al, C.C, 4);
+  T('a', cx + 42, y + (al >= 0 ? al : 0) + (al >= 0 ? 22 : -4), C.C, 26, 'left', true);
+
+  T('вдоль оси излучения нет', cx + 6, cy - h * .3, C.mu, 17);
+  T('максимум излучения ⟂ оси →', cx + w * .12, cy + h * .36, C.mu, 18);
+
+  const I = Math.pow(S.amp * Math.pow(S.nu / 100, 2), 2);
+
+  R.push(
+    ['\\text{Ускорение } |a|', (Math.abs(s) * S.amp * 100).toFixed(0) + ' %', C.C],
+    ['\\text{Интенсивность } I \\propto a^2', '×' + I.toFixed(2)],
+    ['\\text{Скорость } v', fv(PH.v)],
+    ['\\text{Длина волны } \\lambda', fl(PH.lam)]
+  );
+
+  FM_TEX = `I \\propto a^2 \\propto (\\omega^2 A)^2 = \\times ${I.toFixed(2)} \\quad \\Big| \\quad \\lambda = \\frac{v}{\\nu} = \\text{${fl(PH.lam)}}`;
+}
+
+/* СЦЕНА 3: КОНТУР И ВИБРАТОР */
+function sc3(w, h, ph) {
+  const cy = h * .5, I = Math.cos(TAU * S.tau), q = Math.sin(TAU * S.tau), xl = w * .1, xr = w * .34, xm = (xl + xr) / 2;
+  L(xl, cy - 72, xr, cy - 72, C.tx, 3); L(xr, cy - 72, xr, cy - 16, C.tx, 3);
+  L(xr, cy + 16, xr, cy + 72, C.tx, 3); L(xr, cy + 72, xl, cy + 72, C.tx, 3); L(xl, cy - 72, xl, cy + 72, C.tx, 3);
+
+  g.strokeStyle = C.tx; g.lineWidth = 3;
+  for (let i = 0; i < 6; i++) { g.beginPath(); g.arc(xl, cy - 60 + i * 24, 12, Math.PI / 2, Math.PI * 1.5); g.stroke(); }
+  L(xr - 45, cy - 16, xr + 45, cy - 16, C.tx, 6); L(xr - 45, cy + 16, xr + 45, cy + 16, C.tx, 6);
+  T('L', xl - 48, cy + 8, C.tx, 28); T('C', xr + 58, cy + 8, C.tx, 28);
+
+  if (S.vec) {
+    for (const k of [-42, -14, 14, 42]) A(xr + k, cy - q * 14, xr + k, cy + q * 14, C.E, 2.5);
+    A(xl + 18, cy + I * 45, xl + 18, cy - I * 45, C.B, 3.5);
+    T('E', xr + 75, cy - 30, C.E, 24, 'left', true); T('B', xl + 30, cy - 20, C.B, 24, 'left', true);
+  }
+  if (Math.abs(q) > .2) { T(q > 0 ? '+' : '−', xr + 60, cy - 22, C.tx, 26); T(q > 0 ? '−' : '+', xr + 60, cy + 38, C.tx, 26); }
+
+  A(xm - I * 28, cy - 72, xm + I * 28, cy - 72, C.C, 3.5); T('I', xm, cy - 86, C.C, 22, 'center', true);
+  T('Закрытый контур: поле заперто', (xl + xr) / 2, cy + h * .3, C.tx, 20, 'center');
+
+  const cx = w * .74, hl = h * .3; L(cx, cy - hl, cx, cy + hl, C.mu, 7);
+  g.globalAlpha = Math.abs(q);
+  if (S.vec) for (const side of [1, -1]) for (const k of [1, 1.8]) {
+    g.strokeStyle = C.E; g.lineWidth = 2.5; g.beginPath(); g.moveTo(cx + side * 6, cy - hl);
+    g.bezierCurveTo(cx + side * k * 100, cy - hl * .9, cx + side * k * 100, cy + hl * .9, cx + side * 6, cy + hl); g.stroke();
+    const xx = cx + side * (1.5 + 75 * k); A(xx, cy - q * 13, xx, cy + q * 13, C.E, 2.5);
+  }
+
+  g.globalAlpha = Math.abs(I);
+  if (S.vec) for (let k = 1; k <= 3; k++) {
+    g.strokeStyle = C.B; g.lineWidth = 2.5; g.beginPath(); g.ellipse(cx, cy, 14 * k + 6, 5 * k + 2, 0, 0, TAU); g.stroke();
+  }
+  g.globalAlpha = 1;
+
+  const nq = Math.round(Math.abs(q) * 8);
+  for (let i = 0; i < nq; i++) {
+    const xx = cx + (i % 2 ? 9 : -9);
+    g.fillStyle = q > 0 ? C.bad : C.E; g.beginPath(); g.arc(xx, cy - hl + 10 + i * 12, 5, 0, TAU); g.fill();
+    g.fillStyle = q > 0 ? C.E : C.bad; g.beginPath(); g.arc(xx, cy + hl - 10 - i * 12, 5, 0, TAU); g.fill();
+  }
+
+  A(cx + 18, cy + I * 34, cx + 18, cy - I * 34, C.C, 4); T('I', cx + 30, cy + 6, C.C, 22, 'left', true);
+
+  g.save(); g.beginPath(); g.rect(w * .5, 0, w * .5, h); g.clip();
+  rings(cx, cy, 0, Math.min(1.2, S.amp * 1.2), PH.lamV, w * .3); g.restore();
+
+  T('Открытый вибратор Герца: поле выходит', cx, cy + hl + 34, C.tx, 20, 'center');
+
+  const k = Math.round(ph * 4), near = Math.abs(ph * 4 - k) < .12;
+  const tt = ['t = 0', 't = T/4', 't = T/2', 't = 3T/4'][k % 4];
+  const ds = [
+    'ток и B максимальны, E = 0',
+    'I = 0, заряды на концах: E максимально',
+    'ток и B максимальны (обратно), E = 0',
+    'I = 0, заряды на концах (обратно): E макс.'
+  ][k % 4];
+
+  T(near ? tt + ':  ' + ds : 't = ' + ph.toFixed(2) + ' T', w * .5, h * .9, near ? C.C : C.mu, 26, 'center');
+
+  const Lh = 1 / (Math.pow(TAU * S.nu * 1e6, 2) * 10e-12) * 1e6;
+
+  R.push(
+    ['\\text{Ток } I', sg(I) + ' I_0', C.C],
+    ['\\text{Поле } E_q', Math.abs(q).toFixed(2) + ' E_0', C.E],
+    ['\\text{Поле } B_I', Math.abs(I).toFixed(2) + ' B_0', C.B],
+    ['\\text{Скорость } v', fv(PH.v)],
+    ['\\text{Длина волны } \\lambda', fl(PH.lam)]
+  );
+
+  FM_TEX = `\\nu = \\frac{1}{2\\pi\\sqrt{LC}} = \\frac{1}{2\\pi\\sqrt{${Lh.toFixed(2)} \\text{ мкГн} \\cdot 10 \\text{ пФ}}} = ${S.nu} \\text{ МГц}`;
+}
+
+/* СЦЕНА 4: ОПЫТ ГЕРЦА */
+function sc4(w, h) {
+  const cy = h * .44, tx = w * .2, rx = w * .74, hh = Math.max(40, Math.min(h * .29, h * .2 * Math.sqrt(100 / S.nu)));
+  const d = S.det / 100, hr = hh / (1 + d), Rr = 1 / (1 + Math.pow(d / .06, 2)), resp = Math.min(1.2, Rr * S.amp * 1.4);
+  const sp = resp > .55, bx = w * .03, bR = w * .075;
+
+  rings(tx, cy, 0, Math.min(1.2, S.amp * 1.3), PH.lamV, rx - tx + 90);
+
+  g.fillStyle = C.pn; g.globalAlpha = .82; g.fillRect(bx, cy - hh * .8, bR - bx, hh * 1.6); g.globalAlpha = 1;
+  g.strokeStyle = C.ln; g.lineWidth = 3; g.strokeRect(bx, cy - hh * .8, bR - bx, hh * 1.6);
+  T('Источник', (bx + bR) / 2, cy - 6, C.tx, 15, 'center'); T('ВН', (bx + bR) / 2, cy + 14, C.tx, 15, 'center');
+
+  for (const y of [cy - hh * .8, cy + hh * .8]) { L(bR, y, tx, y, C.tx, 3); coil(bR + 25, bR + 25 + (tx - bR) * .5, y); }
+  T('дроссели', bR + (tx - bR) * .5, cy - hh * .8 - 16, C.mu, 16, 'center');
+
+  g.shadowBlur = 0;
+  for (const sgn of [-1, 1]) { L(tx, cy + sgn * 6, tx, cy + sgn * hh, C.tx, 6); g.fillStyle = C.tx; g.beginPath(); g.arc(tx, cy + sgn * hh, 8, 0, TAU); g.fill(); }
+
+  spark(tx, cy, 7, 1); T('вибратор (передатчик)', tx, cy + hh + 30, C.tx, 18, 'center'); T('искровой промежуток', tx + 18, cy + 4, C.mu, 15, 'left');
+
+  g.save(); g.shadowColor = C.C; g.shadowBlur = resp * 22;
+  for (const sgn of [-1, 1]) { L(rx, cy + sgn * 6, rx, cy + sgn * hr, sp ? C.C : C.tx, 6); g.fillStyle = C.tx; g.beginPath(); g.arc(rx, cy + sgn * hr, 8, 0, TAU); g.fill(); }
+  g.restore();
+
+  const dy = resp * 16 * Math.sin(TAU * S.tau - .6); g.fillStyle = C.E;
+  for (const sgn of [-1, 1]) for (let j = 1; j <= 6; j++) { g.beginPath(); g.arc(rx + (j % 2 ? 7 : -7), cy + sgn * hr * j / 6.6 + dy, 3.5, 0, TAU); g.fill(); }
+
+  if (sp) { spark(rx, cy, 8, 1.3); T('ИСКРА!', rx + 22, cy + 6, C.C, 24, 'left'); }
+  T('резонатор (приёмник)', rx, cy + hh + 30, C.tx, 18, 'center');
+
+  const ix = w * .52, iy = h * .8, iw = w * .44, ih = h * .15, X = v => ix + (v + .3) / .6 * iw, Y = v => iy + ih - v * ih * .9;
+  g.fillStyle = C.pn; g.globalAlpha = .82; g.fillRect(ix - 6, iy - 26, iw + 12, ih + 34); g.globalAlpha = 1;
+  g.strokeStyle = C.ln; g.lineWidth = 2; g.strokeRect(ix - 6, iy - 26, iw + 12, ih + 34);
+  g.strokeStyle = C.ln; g.lineWidth = 1.5; g.strokeRect(ix, iy, iw, ih);
+  g.strokeStyle = C.C; g.lineWidth = 3; g.beginPath();
+  for (let i = 0; i <= 120; i++) { const v = -.3 + i * .005, x = X(v), y = Y(1 / (1 + Math.pow(v / .06, 2))); i ? g.lineTo(x, y) : g.moveTo(x, y); }
+  g.stroke();
+
+  g.fillStyle = sp ? C.ok : C.bad; g.beginPath(); g.arc(X(d), Y(Rr), 8, 0, TAU); g.fill();
+  T('отклик приёмника в зависимости от настройки δ', ix, iy - 8, C.tx, 15);
+
+  R.push(
+    ['\\nu_\\text{передатчика}', S.nu + ' МГц'],
+    ['\\nu_\\text{резонатора}', (S.nu * (1 + d)).toFixed(1) + ' МГц'],
+    ['\\text{Отклик приёмника}', Math.round(Math.min(1, resp) * 100) + ' %', sp ? C.ok : C.bad],
+    ['\\text{Состояние}', sp ? 'Резонанс / Искра есть' : 'Рассогласование', sp ? C.ok : C.bad],
+    ['\\lambda', fl(PH.lam)]
+  );
+
+  FM_TEX = `\\nu_\\text{пр} = \\nu (1+\\delta) = ${(S.nu * (1 + d)).toFixed(1)} \\text{ МГц} \\quad \\Big| \\quad \\text{отклик} = \\frac{1}{1 + (\\delta / 0.06)^2} = ${Math.round(Rr * 100)}\\%`;
+}
+
+function renderMathLabels() {
+  $('#lbl_vec').innerHTML = tex('\\vec{E}, \\vec{B}');
+  $('#lbl_lam').innerHTML = tex('\\lambda');
+  $('#lbl_nu').innerHTML = tex('\\nu');
+  $('#lbl_n').innerHTML = tex('n');
+  $('#lbl_det').innerHTML = tex('\\delta');
+}
+
+function draw() {
+  const w = W, h = H; pxm = w * .087; const n = S.med == 'cus' ? S.n : MED[S.med][1], nu = S.nu * 1e6, l0 = c0 / nu;
+  PH = {n, nu, T: 1 / nu, v: c0 / n, lam0: l0, lam: l0 / n, lamV: l0 / n * pxm, lamV0: l0 * pxm};
+
+  g.globalAlpha = 1;
+  g.clearRect(0, 0, w, h);
+  g.save();
+  g.translate(w / 2 + S.panX, h / 2 + S.panY);
+  g.scale(S.zoom, S.zoom);
+  g.translate(-w / 2, -h / 2);
+  const ph = ((S.tau % 1) + 1) % 1; R = [];
+  [sc1, sc2, sc3, sc4][S.sc](w, h, ph);
+  g.restore();
+  g.globalAlpha = 1;
+
+  const rows = [
+    ['\\text{Фаза } t/T', ph.toFixed(2)],
+    ['\\text{Частота } \\nu', S.nu + ' МГц'],
+    ['\\text{Период } T', (PH.T * 1e9).toFixed(1) + ' нс'],
+    ...R
+  ];
+
+  $('#met').innerHTML = rows.map(r => `<div class="metric-row"><span class="metric-label">${tex(r[0])}</span><b class="metric-value"${r[2] ? ` style="color:${r[2]}"` : ''}>${r[1]}</b></div>`).join('');
+  $('#fm').innerHTML = tex(FM_TEX, false);
+}
+
+function frame(t) {
+  const dt = Math.min(.05, (t - last) / 1000); last = t;
+  if (S.play) S.tau += dt * .35 * S.spd;
+  draw();
+  requestAnimationFrame(frame);
+}
+
+function rs() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  const d = devicePixelRatio || 1;
+  cv.width = W * d; cv.height = H * d;
+  g.setTransform(d, 0, 0, d, 0, 0);
+}
+
+function go(i) {
+  S.sc = i;
+  [...$('#tabs').children].forEach((b, j) => b.classList.toggle('active', j == i));
+
+  $('#desc').innerHTML = DESC[i].replace(/\$(.*?)\$/g, (_, m) => tex(m));
+  $('#ck').innerHTML = CK[i].map(t => '<li>' + t.replace(/\$(.*?)\$/g, (_, m) => tex(m)) + '</li>').join('');
+
+  $('#detw').style.display = i == 3 ? '' : 'none';
+}
+
+function upd() {
+  S.nu = +$('#nu').value; S.amp = +$('#amp').value; S.det = +$('#det').value; S.med = $('#med').value; S.n = +$('#nn').value;
+  $('#nuv').textContent = S.nu + ' МГц';
+  $('#ampv').textContent = Math.round(S.amp * 100) + ' %';
+  $('#detv').innerHTML = tex('\\delta = ' + (S.det > 0 ? '+' : '') + S.det + '\\%');
+  $('#nnv').textContent = S.n.toFixed(2);
+  $('#nnw').style.display = S.med == 'cus' ? '' : 'none';
+
+  S.vec = $('#vec').checked; S.ax = $('#ax').checked; S.screw = $('#screw').checked; S.form = $('#fo').checked;
+  const wf = $('#w-formula');
+  if (S.form) {
+    if (wf.classList.contains('hidden')) restorePanel('w-formula');
+  } else {
+    wf.classList.add('hidden');
+  }
+}
+
+// МАСШТАБИРОВАНИЕ И ПЕРЕМЕЩЕНИЕ ФОНОВОГО КАНВАСА
+function updateZoomUI() {
+  const pct = Math.round(S.zoom * 100);
+  $('#zoom-reset').textContent = pct + '%';
+  $('#zoomv').textContent = pct + '%';
+  $('#zoom-slider').value = pct;
+}
+
+function setZoom(nextZoom, anchorX = W / 2, anchorY = H / 2) {
+  const clamped = Math.max(0.35, Math.min(3.5, Math.round(nextZoom * 100) / 100));
+  if (clamped === S.zoom) return;
+  const ratio = clamped / S.zoom;
+  S.panX = anchorX - W / 2 - ratio * (anchorX - W / 2 - S.panX);
+  S.panY = anchorY - H / 2 - ratio * (anchorY - H / 2 - S.panY);
+  S.zoom = clamped;
+  updateZoomUI();
+}
+
+function resetView() {
+  S.zoom = 1;
+  S.panX = 0;
+  S.panY = 0;
+  updateZoomUI();
+}
+
+$('#zoom-in').onclick = () => setZoom(S.zoom * 1.15);
+$('#zoom-out').onclick = () => setZoom(S.zoom / 1.15);
+$('#zoom-reset').onclick = resetView;
+$('#zoom-slider').addEventListener('input', e => setZoom(+e.target.value / 100));
+
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  const rect = cv.getBoundingClientRect();
+  const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+  setZoom(S.zoom * factor, e.clientX - rect.left, e.clientY - rect.top);
+}, { passive: false });
+
+let cvDrag = null;
+cv.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  cvDrag = { pointerId: e.pointerId, startX: e.clientX, startY: e.clientY, panX: S.panX, panY: S.panY };
+  cv.setPointerCapture?.(e.pointerId);
+});
+cv.addEventListener('pointermove', e => {
+  if (!cvDrag || e.pointerId !== cvDrag.pointerId) return;
+  S.panX = cvDrag.panX + (e.clientX - cvDrag.startX);
+  S.panY = cvDrag.panY + (e.clientY - cvDrag.startY);
+});
+const stopCvDrag = e => {
+  if (cvDrag && (!e || e.pointerId === cvDrag.pointerId)) cvDrag = null;
+};
+cv.addEventListener('pointerup', stopCvDrag);
+cv.addEventListener('pointercancel', stopCvDrag);
+cv.addEventListener('lostpointercapture', stopCvDrag);
+cv.addEventListener('dblclick', resetView);
+
+// ИНИЦИАЛИЗАЦИЯ И УПРАВЛЕНИЕ ТАБИКАМИ И ПАРАМЕТРАМИ
+SC.forEach((s, i) => {
+  const b = document.createElement('button');
+  b.className = 'btn';
+  b.textContent = (i + 1) + ' · ' + s;
+  b.onclick = () => go(i);
+  $('#tabs').append(b);
+});
+
+const pl = () => { $('#pl').textContent = S.play ? '⏸ Пауза' : '▶ Старт'; };
+const step = () => { S.tau = (Math.floor(S.tau * 4 + 1e-6) + 1) / 4; S.play = 0; pl(); };
+const tgl = () => { S.play = !S.play; pl(); };
+
+$('#pl').onclick = tgl;
+$('#st').onclick = step;
+$('#th').onclick = () => {
+  const r = document.documentElement;
+  r.dataset.theme = r.dataset.theme == 'light' ? 'dark' : 'light';
+  theme();
+};
+
+document.querySelectorAll('aside input, aside select, .toggles-grid input, select, input[type=range]').forEach(e => {
+  if (e.id !== 'zoom-slider') e.oninput = e.onchange = upd;
+});
+
+// УПРАВЛЕНИЕ ПАНЕЛЯМИ: перетаскивание мышью/касанием, клавиатура, сворачивание и закрытие
+const widgets = [...document.querySelectorAll('.widget')];
+
+function setPanelPosition(widget, left, top) {
+  const maxLeft = Math.max(8, window.innerWidth - widget.offsetWidth - 8);
+  const maxTop = Math.max(8, window.innerHeight - widget.offsetHeight - 8);
+  widget.style.right = 'auto';
+  widget.style.bottom = 'auto';
+  widget.style.left = Math.max(8, Math.min(maxLeft, left)) + 'px';
+  widget.style.top = Math.max(8, Math.min(maxTop, top)) + 'px';
+}
+
+function restorePanel(id) {
+  const widget = document.getElementById(id);
+  if (!widget) return;
+  widget.classList.remove('hidden', 'minimized');
+  const body = widget.querySelector('.widget-body');
+  if (body) body.style.display = '';
+  const minimize = widget.querySelector('.minimize-btn');
+  if (minimize) {
+    minimize.setAttribute('aria-expanded', 'true');
+    minimize.title = 'Свернуть';
+    minimize.setAttribute('aria-label', 'Свернуть панель');
+  }
+  if (id === 'w-formula') {
+    S.form = true;
+    $('#fo').checked = true;
+  }
+}
+
+widgets.forEach(widget => {
+  const header = widget.querySelector('.widget-header');
+  if (!header) return;
+  header.tabIndex = 0;
+  header.setAttribute('role', 'group');
+  header.setAttribute('aria-label', 'Заголовок панели; перетащите для перемещения');
+
+  let drag = null;
+  header.addEventListener('pointerdown', e => {
+    if (e.target.closest('.widget-controls')) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const rect = widget.getBoundingClientRect();
+    drag = { pointerId: e.pointerId, startX: e.clientX, startY: e.clientY, left: rect.left, top: rect.top };
+    setPanelPosition(widget, rect.left, rect.top);
+    header.setPointerCapture?.(e.pointerId);
+    e.preventDefault();
+  });
+
+  header.addEventListener('pointermove', e => {
+    if (!drag || e.pointerId !== drag.pointerId) return;
+    setPanelPosition(widget, drag.left + e.clientX - drag.startX, drag.top + e.clientY - drag.startY);
+  });
+
+  const stopDrag = e => {
+    if (drag && (!e || e.pointerId === drag.pointerId)) drag = null;
+  };
+  header.addEventListener('pointerup', stopDrag);
+  header.addEventListener('pointercancel', stopDrag);
+  header.addEventListener('lostpointercapture', stopDrag);
+
+  // Перемещение выбранной панели стрелками клавиатуры.
+  header.addEventListener('keydown', e => {
+    const delta = e.shiftKey ? 30 : 10;
+    const moves = {
+      ArrowUp: [0, -delta], ArrowDown: [0, delta],
+      ArrowLeft: [-delta, 0], ArrowRight: [delta, 0]
+    };
+    if (!moves[e.key] || e.target.closest('button')) return;
+    e.preventDefault();
+    const rect = widget.getBoundingClientRect();
+    setPanelPosition(widget, rect.left + moves[e.key][0], rect.top + moves[e.key][1]);
+  });
+
+  const closeBtn = widget.querySelector('.close-btn');
+  if (closeBtn) closeBtn.addEventListener('click', () => {
+    widget.classList.add('hidden');
+    if (widget.id === 'w-formula') {
+      S.form = false;
+      $('#fo').checked = false;
+    }
+  });
+
+  const minimizeBtn = widget.querySelector('.minimize-btn');
+  if (minimizeBtn) minimizeBtn.addEventListener('click', () => {
+    const isMinimized = widget.classList.toggle('minimized');
+    minimizeBtn.setAttribute('aria-expanded', String(!isMinimized));
+    minimizeBtn.title = isMinimized ? 'Развернуть' : 'Свернуть';
+    minimizeBtn.setAttribute('aria-label', isMinimized ? 'Развернуть панель' : 'Свернуть панель');
+  });
+});
+
+// Меню показывает любую из пяти панелей, даже если она была закрыта.
+const openMenu = $('#openMenu');
+const panelSelector = $('#panelSelector');
+openMenu.addEventListener('click', () => {
+  const isOpen = panelSelector.classList.toggle('open');
+  openMenu.setAttribute('aria-expanded', String(isOpen));
+});
+
+panelSelector.querySelectorAll('[data-panel]').forEach(button => {
+  button.addEventListener('click', () => {
+    restorePanel(button.dataset.panel);
+    panelSelector.classList.remove('open');
+    openMenu.setAttribute('aria-expanded', 'false');
+  });
+});
+
+document.addEventListener('pointerdown', e => {
+  if (!panelSelector.contains(e.target) && e.target !== openMenu) {
+    panelSelector.classList.remove('open');
+    openMenu.setAttribute('aria-expanded', 'false');
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    panelSelector.classList.remove('open');
+    openMenu.setAttribute('aria-expanded', 'false');
+  }
+});
+
+// Кнопки верхней панели работают как быстрые переключатели окон.
+const setupToggle = (btnId, widgetId) => {
+  $(btnId).onclick = () => {
+    const widget = $(widgetId);
+    if (widget.classList.contains('hidden') || widget.classList.contains('minimized')) {
+      restorePanel(widgetId.slice(1));
+    } else {
+      widget.classList.add('hidden');
+      if (widgetId === '#w-formula') {
+        S.form = false;
+        $('#fo').checked = false;
+      }
+    }
+  };
+};
+setupToggle('#btn-toggle-params', '#w-params');
+setupToggle('#btn-toggle-metrics', '#w-metrics');
+setupToggle('#btn-toggle-cheat', '#w-cheat');
+setupToggle('#btn-toggle-formula', '#w-formula');
+
+window.onresize = () => {
+  rs();
+  widgets.forEach(widget => {
+    if (widget.classList.contains('hidden')) return;
+    const rect = widget.getBoundingClientRect();
+    setPanelPosition(widget, rect.left, rect.top);
+  });
+};
+
+window.onload = () => {
+  renderMathLabels();
+  theme();
+  rs();
+  upd();
+  updateZoomUI();
+  go(0);
+  pl();
+  requestAnimationFrame(frame);
+};
+</script>
+</body>
+</html>
